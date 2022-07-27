@@ -1,0 +1,132 @@
+* Rails アプリケーションを MySQL につなぐ
+
+** Rails アプリケーションを作成する
+
+#+BEGIN_SRC shell
+  rails new sample_app -d mysql
+#+END_SRC
+
+** Rails アプリケーションの Docker イメージをビルドする
+
+#+BEGIN_SRC dockerfile :tangle backend/Dockerfile
+  FROM ruby:2.7.4 AS backend
+
+  ENV TZ Asia/Tokyo
+
+  ARG RAILS_ENV
+  ENV RAILS_ENV $RAILS_ENV
+
+  WORKDIR /backend
+
+  ENV BUNDLER_VERSION 2.2.29
+  RUN gem install bundler -v "${BUNDLER_VERSION}"
+
+  COPY Gemfile Gemfile.lock ./
+  RUN bundle config set --local frozen 'true'
+  RUN if [ "${RAILS_ENV:-development}" = development ]; then \
+      bundle config set --local development 'true'; \
+      bundle install --jobs=4; \
+      else \
+      bundle config set --local without 'development test'; \
+      bundle install --jobs=4; \
+      fi
+  RUN mkdir -p tmp/pids
+
+  VOLUME ["/backend"]
+#+END_SRC
+
+** MySQL の Docker イメージをビルドする
+
+Rails アプリケーションで使用するDB名を =sample_db= とする。
+DBに接続するユーザーは =rails_app= とする。
+
+#+BEGIN_SRC sql :tangle mysql/01_init_db.sql
+  GRANT ALL ON sample_db.* TO 'rails_app'@'%' IDENTIFIED BY 'password';
+
+  CREATE DATABASE IF NOT EXISTS sample_db;
+#+END_SRC
+
+#+BEGIN_SRC conf :tangle mysql/my.cnf
+  [mysql]
+  default-character-set=utf8mb4
+  [mysqld]
+  character-set-server=utf8mb4
+  collation-server=utf8mb4_bin
+  [client]
+  default-character-set=utf8mb4
+#+END_SRC
+
+#+BEGIN_SRC dockerfile :tangle mysql/Dockerfile
+  FROM mysql:5.6
+
+  ENV TZ Asia/Tokyo
+  ENV MYSQL_ROOT_PASSWORD=password
+
+  COPY 01_init_db.sql /docker-entrypoint-initdb.d/01_init_db.sql
+  COPY ./my.cnf /etc/mysql/my.cnf
+#+END_SRC
+
+** Rails アプリケーションを DB に接続する設定を書く
+
+#+BEGIN_SRC yaml :tangle backend/config/database.yml
+  default: &default
+    adapter: mysql2
+    encoding: utf8mb4
+    pool: <%= ENV.fetch('RAILS_MAX_THREADS') { 5 } %>
+    database: sample_db
+    username: rails_app
+    password: password
+
+  development:
+    <<: *default
+    host: <%= ENV.fetch('RAILS_DATABASE_HOST') { 'mysql_dev' } %>
+
+  test:
+    <<: *default
+    host: <%= ENV.fetch('RAILS_DATABASE_HOST') { 'mysql_test' } %>
+
+  production:
+    <<: *default
+    password: <%= ENV['RAILS_DATABASE_PASSWORD'] %>
+#+END_SRC
+
+** Docker でビルドする
+
+#+BEGIN_SRC yaml :tangle docker-compose.yml
+  version: '3'
+
+  services:
+    mysql_dev:
+      build:
+        context: mysql
+        dockerfile: Dockerfile
+      ports:
+        - '3306:3306'
+    mysql_test:
+      build:
+        context: mysql
+        dockerfile: Dockerfile
+      ports:
+        - '13306:3306'
+    backend:
+      build:
+        context: backend
+        dockerfile: Dockerfile
+      working_dir: /backend
+      ports:
+        - '3000:3000'
+      command: bundle exec rails server -b 0.0.0.0
+      environment:
+        TZ: Asia/Tokyo
+        LANG: C.UTF-8
+      depends_on:
+        - mysql_dev
+        - mysql_test
+      volumes:
+        - ./backend:/backend
+#+END_SRC
+
+#+BEGIN_SRC shell
+  docker-compose build
+  docker-compose up -d
+#+END_SRC

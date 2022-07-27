@@ -1,0 +1,17 @@
+* Guile で SRFI を使う
+
+** サンプルコード
+
+SRFI-1 の fold-right を使う。
+
+#+begin_src scheme :tangle use-srfi.scm
+  (use-modules (srfi srfi-1))
+  (display (fold-right - 0 '(31 7 5)))
+  (newline)
+#+end_src
+
+** 実行方法
+
+#+begin_src shell
+  guile --use-srfi=1 use-srfi.scm
+#+end_src

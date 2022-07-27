@@ -1,0 +1,14 @@
+* 標準入力サンプル
+
+#+begin_src scheme
+  (use-modules (ice-9 readline))
+
+  (define (read-from-stdin)
+    (let ((line (readline)))
+      (if (eof-object? line)
+          '()
+          (cons line (read-from-stdin)))))
+
+  (display (read-from-stdin))
+  (newline)
+#+end_src

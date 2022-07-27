@@ -1,0 +1,366 @@
+* testing-library と Formik のサンプルコード
+
+** deps
+#+BEGIN_SRC javascript :tangle package.json :mkdirp yes
+  {
+    "name": "js24",
+    "version": "1.0.0",
+    "main": "private",
+    "license": "MIT",
+    "private": true,
+    "scripts": {
+      "build": "webpack",
+      "start": "webpack-dev-server",
+      "test": "jest"
+    },
+    "dependencies": {
+      "formik": "^2.1.5",
+      "react": "^16.9.13",
+      "react-dom": "^16.9.4",
+      "yup": "^0.29.3"
+    },
+    "devDependencies": {
+      "@babel/core": "^7.6.4",
+      "@babel/plugin-proposal-class-properties": "^7.5.5",
+      "@babel/plugin-proposal-object-rest-spread": "^7.6.2",
+      "@babel/preset-env": "^7.6.3",
+      "@babel/preset-react": "^7.6.3",
+      "@testing-library/jest-dom": "^5.11.4",
+      "@testing-library/react": "^10.4.7",
+      "babel-loader": "^8.0.6",
+      "core-js": "^3.3.6",
+      "eslint": "^7.5.0",
+      "eslint-config-airbnb": "^18.0.1",
+      "eslint-config-prettier": "^6.5.0",
+      "eslint-plugin-import": "^2.18.2",
+      "eslint-plugin-jest": "^23.0.2",
+      "eslint-plugin-jsx-a11y": "^6.2.3",
+      "eslint-plugin-prefer-arrow": "^1.1.6",
+      "eslint-plugin-prettier": "^3.1.1",
+      "eslint-plugin-react": "^7.16.0",
+      "eslint-plugin-react-hooks": "^4.0.8",
+      "given2": "^2.1.7",
+      "jest": "^26.1.0",
+      "prettier": "^2.0.5",
+      "webpack": "^4.31.0",
+      "webpack-cli": "^3.3.2",
+      "webpack-dev-server": "^3.11.0"
+    }
+  }
+#+END_SRC
+
+** webpack
+#+BEGIN_SRC javascript :tangle webpack.config.js :mkdirp yes
+  const path = require('path')
+
+  module.exports = {
+    entry: path.resolve(__dirname, 'src/index.jsx'),
+    output: {
+      path: path.resolve(__dirname, 'public'),
+      filename: 'bundle.js',
+    },
+    mode: 'development',
+    devtool: 'source-map',
+    resolve: {
+      extensions: ['.js', '.jsx'],
+      modules: [path.resolve(__dirname, 'src'), 'node_modules'],
+      alias: {
+        '@': path.resolve(__dirname, 'src'),
+      },
+    },
+    module: {
+      rules: [
+        {
+          test: /\.jsx?$/,
+          use: [
+            {
+              loader: 'babel-loader',
+            },
+          ],
+          include: [path.resolve(__dirname, 'src')],
+          exclude: /node_modules/,
+        },
+      ],
+    },
+    devServer: {
+      inline: true,
+      contentBase: path.resolve(__dirname, 'public'),
+    },
+  }
+
+#+END_SRC
+
+** babel
+#+BEGIN_SRC javascript :tangle babel.config.js :mkdirp yes
+  module.exports = api => {
+    api.cache(true)
+
+    const presets = [
+      [
+        '@babel/preset-env',
+        {
+          useBuiltIns: 'usage',
+          corejs: 3,
+        },
+      ],
+      '@babel/preset-react',
+    ]
+
+    const plugins = [
+      '@babel/proposal-class-properties',
+      '@babel/proposal-object-rest-spread',
+    ]
+
+    return {
+      presets,
+      plugins,
+    }
+  }
+
+#+END_SRC
+
+** jest
+#+BEGIN_SRC javascript :tangle jest.config.js :mkdirp yes
+  module.exports = {
+    clearMocks: true,
+    coverageDirectory: 'coverage',
+    moduleFileExtensions: ['js', 'jsx'],
+    moduleNameMapper: {
+      '^@/(.+)': '<rootDir>/src/$1',
+    },
+    setupFilesAfterEnv: ['<rootDir>/setupTests.js'],
+    testEnvironment: 'jsdom',
+  }
+#+END_SRC
+
+#+BEGIN_SRC javascript :tangle setupTests.js :mkdirp yes
+  import '@testing-library/jest-dom/extend-expect'
+
+  global.context = describe
+#+END_SRC
+
+** project
+#+BEGIN_SRC html :tangle public/index.html :mkdirp yes
+  <!DOCTYPE html>
+  <html lang="ja">
+    <head>
+      <meta charset="UTF-8" />
+      <meta name="viewport" content="width=device-width"/>
+      <title>sample</title>
+      <script src="./bundle.js"></script>
+    </head>
+    <body>
+      <div id="root"></div>
+    </body>
+  </html>
+
+#+END_SRC
+
+#+BEGIN_SRC javascript :tangle src/index.jsx :mkdirp yes
+  import React from 'react'
+  import { render } from 'react-dom'
+  import App from './App'
+
+  document.addEventListener('DOMContentLoaded', () => {
+    render(<App />, document.getElementById('root'))
+  })
+#+END_SRC
+
+#+BEGIN_SRC javascript :tangle src/App.jsx :mkdirp yes
+  import React from 'react'
+  import LoginForm from '@/containers/LoginForm'
+
+  const Component = () => {
+    return (
+      <div>
+        <h1>ログイン</h1>
+        <LoginForm />
+      </div>
+    )
+  }
+
+  export default Component
+#+END_SRC
+
+#+BEGIN_SRC javascript :tangle src/api/login.js :mkdirp yes
+  export const postLogin = values =>
+    new Promise(resolve => {
+      setTimeout(() => {
+        resolve()
+      }, 3000)
+    })
+#+END_SRC
+
+#+BEGIN_SRC javascript :tangle src/components/LoginForm.jsx :mkdirp yes
+  import React from 'react'
+  import { getIn } from 'formik'
+
+  const Component = ({ values, errors, touched, handleChange, handleSubmit }) => {
+    return (
+      <form onSubmit={handleSubmit}>
+        <div>
+          <label htmlFor="email">ユーザーID</label>
+          <input
+            type="text"
+            id="email"
+            onChange={handleChange}
+            value={values.email}
+          />
+          {getIn(errors, 'email') && getIn(touched, 'email') && (
+            <div>{getIn(errors, 'email')}</div>
+          )}
+        </div>
+        <div>
+          <label htmlFor="password">パスワード</label>
+          <input
+            type="password"
+            id="password"
+            onChange={handleChange}
+            value={values.password}
+          />
+          {getIn(errors, 'password') && getIn(touched, 'password') && (
+            <div>{getIn(errors, 'password')}</div>
+          )}
+        </div>
+        <div>
+          <input type="submit" value="ログイン" />
+        </div>
+      </form>
+    )
+  }
+
+  export default Component
+#+END_SRC
+
+#+BEGIN_SRC javascript :tangle src/containers/LoginForm.jsx :mkdirp yes
+  import React from 'react'
+  import { useFormik } from 'formik'
+  import LoginForm from '@/components/LoginForm'
+  import { usePostLogin } from '@/hooks/login'
+  import schema from '@/schemas/login'
+
+  const Component = () => {
+    const api = usePostLogin()
+    const formik = useFormik({
+      initialValues: {
+        email: '',
+        password: '',
+      },
+      validationSchema: schema,
+      onSubmit: values => {
+        api.call(values)
+      },
+    })
+
+    return <LoginForm {...formik} />
+  }
+
+  export default Component
+#+END_SRC
+
+#+BEGIN_SRC javascript :tangle specs/containers/LoginForm.spec.jsx :mkdirp yes
+  import React from 'react'
+  import { render, fireEvent, waitFor } from '@testing-library/react'
+  import given from 'given2'
+  import LoginForm from '@/containers/LoginForm'
+  import { usePostLogin } from '@/hooks/login'
+
+  jest.mock('@/hooks/login')
+
+  describe('<LoginForm />', () => {
+    given('component', () => <LoginForm />)
+    given('email', () => 'test@example.com')
+    given('password', () => 'password')
+
+    const api = {
+      call: jest.fn(),
+    }
+    usePostLogin.mockImplementation(() => api)
+
+    describe('ログインボタンを押す', () => {
+      context('正常系', () => {
+        it('call が呼び出される', async () => {
+          const { getByText, getByLabelText } = render(given.component)
+          fireEvent.change(getByLabelText('ユーザーID'), {
+            target: { value: given.email },
+          })
+          fireEvent.change(getByLabelText('パスワード'), {
+            target: { value: given.password },
+          })
+          fireEvent.click(getByText('ログイン'))
+
+          await waitFor(() => {
+            expect(api.call).toHaveBeenCalledWith({
+              email: given.email,
+              password: given.password,
+            })
+          })
+        })
+      })
+
+      context('ユーザーIDが空の場合', () => {
+        given('email', () => '')
+
+        it('バリデーションメッセージが表示される', async () => {
+          const { getByText, getByLabelText } = render(given.component)
+          fireEvent.change(getByLabelText('ユーザーID'), {
+            target: { value: given.email },
+          })
+          fireEvent.change(getByLabelText('パスワード'), {
+            target: { value: given.password },
+          })
+          fireEvent.click(getByText('ログイン'))
+
+          await waitFor(() => {
+            expect(getByText('この項目は必須です')).toBeInTheDocument()
+          })
+        })
+
+        it('call は呼び出されない', async () => {
+          const { getByText, getByLabelText } = render(given.component)
+          fireEvent.change(getByLabelText('ユーザーID'), {
+            target: { value: given.email },
+          })
+          fireEvent.change(getByLabelText('パスワード'), {
+            target: { value: given.password },
+          })
+          fireEvent.click(getByText('ログイン'))
+
+          await waitFor(() => {
+            expect(api.call).not.toHaveBeenCalled()
+          })
+        })
+      })
+    })
+  })
+#+END_SRC
+
+#+BEGIN_SRC javascript :tangle src/schemas/login.js :mkdirp yes
+  import * as Yup from 'yup'
+
+  const schema = Yup.object().shape({
+    email: Yup.string()
+      .email('形式が違います')
+      .required('この項目は必須です'),
+    password: Yup.string().required('この項目は必須です'),
+  })
+
+  export default schema
+#+END_SRC
+
+#+BEGIN_SRC javascript :tangle src/hooks/login.js :mkdirp yes
+  import { postLogin } from '@/api/login'
+
+  export const usePostLogin = () => {
+    return {
+      call: async values => {
+        try {
+          const response = await postLogin(values)
+          /* 成功系処理 */
+        } catch (e) {
+          /* 異常系処理 */
+        }
+      },
+    }
+  }
+#+END_SRC

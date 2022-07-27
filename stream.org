@@ -1,0 +1,86 @@
+* ストリームを使ってみる
+
+** 10_000 以上 1_000_000 未満の素数のうち、２番目に小さいものを求める
+
+*** 愚直な実装
+
+リストを用いる。
+
+#+BEGIN_SRC scheme :tangle list.scm
+  (define (square x) (* x x))
+
+  (define (prime? n)
+    (letrec ((iter (lambda (m)
+                     (cond ((>= (square m) n) #t)
+                           ((zero? (remainder n m)) #f)
+                           (else (iter (+ m 1)))))))
+      (iter 2)))
+
+  (define (enumerate-interval low high)
+    (if (>= low high)
+        '()
+        (cons low (enumerate-interval (+ low 1) high))))
+
+  (display (car (cdr (filter prime? (enumerate-interval 10000 1000000)))))
+  (newline)
+#+END_SRC
+
+#+BEGIN_SRC
+  $ time guile list.scm
+  10009
+  4.402 secs
+#+END_SRC
+
+実行に 4.4s ほどかかる。
+
+*** ストリームを用いた実装
+
+#+BEGIN_SRC scheme :tangle stream.scm
+  (define-syntax cons-stream
+    (syntax-rules ()
+      ((_ a b)
+       (cons a (delay b)))))
+
+  (define the-empty-stream '())
+
+  (define (stream-null? s) (null? s))
+
+  (define (stream-car s) (car s))
+
+  (define (stream-cdr s)
+    (force (cdr s)))
+
+  (define (stream-filter p s)
+    (cond ((stream-null? s)
+           the-empty-stream)
+          ((p (stream-car s))
+           (cons-stream (stream-car s)
+                        (stream-filter p (stream-cdr s))))
+          (else
+           (stream-filter p (stream-cdr s)))))
+
+  (define (square x) (* x x))
+
+  (define (prime? n)
+    (letrec ((iter (lambda (m)
+                     (cond ((>= (square m) n) #t)
+                           ((zero? (remainder n m)) #f)
+                           (else (iter (+ m 1)))))))
+      (iter 2)))
+
+  (define (stream-enumerate-interval low high)
+    (if (>= low high)
+        the-empty-stream
+        (cons-stream low (stream-enumerate-interval (+ low 1) high))))
+
+  (display (stream-car (stream-cdr (stream-filter prime? (stream-enumerate-interval 10000 1000000)))))
+  (newline)
+#+END_SRC
+
+#+BEGIN_SRC
+  $ time guile stream.scm
+  10009
+  0.232 secs
+#+END_SRC
+
+0.2s で実行完了！

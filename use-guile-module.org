@@ -1,0 +1,19 @@
+* scheme でモジュールを定義＆読み込む
+
+** モジュール定義
+
+#+begin_src scheme :tangle foo.scm
+  (define-module (foo)
+    #:export (func))
+
+  (define (func x) (+ x 1))
+#+end_src
+
+** モジュール読み込み
+
+#+begin_src scheme :tangle main.scm
+  (use-modules (foo))
+
+  (display (func 10))
+  (newline)
+#+end_src

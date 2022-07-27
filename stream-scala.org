@@ -1,0 +1,86 @@
+* Scala による Stream の実装
+
+参考：https://github.com/fpinscala/fpinscala
+
+#+BEGIN_SRC scala :tangle stream.scala
+  trait Stream[+A] {
+    def toList: List[A]
+    def take(n: Int): Stream[A]
+    def drop(n: Int): Stream[A]
+    def foldRight[B](z: => B)(f: (A, => B) => B): B
+    def exists(p: A => Boolean): Boolean = foldRight(false)((a, b) => p(a) || b)
+    def forall(p: A => Boolean): Boolean = foldRight(true)((a, b) => p(a) && b)
+    def takeWhile(p: A => Boolean): Stream[A] = foldRight(Stream.empty[A]) {
+      (a, b) => if (p(a)) {
+        Stream.cons(a, b.takeWhile(p))
+      } else {
+        Stream.empty
+      }
+    }
+    def headOption: Option[A] = foldRight(Option.empty[A]) {
+      (a, b) => Some(a) orElse b
+    }
+    def map[B](f: A => B): Stream[B] = foldRight(Stream.empty[B]) {
+      (a, b) => Stream.cons(f(a), b)
+    }
+    def filter(p: A => Boolean): Stream[A] = foldRight(Stream.empty[A]) {
+      (a, b) => if (p(a)) {
+        Stream.cons(a, b)
+      } else {
+        b
+      }
+    }
+    def append[B>:A](s: => Stream[B]): Stream[B] = foldRight(s) {
+      (a, b) => Stream.cons(a, b)
+    }
+    def flatMap[B](f: A => Stream[B]): Stream[B] = foldRight(Stream.empty[B]) {
+      (a, b) => f(a).append(b)
+    }
+  }
+
+  case object Empty extends Stream[Nothing] {
+    def toList = Nil
+    def take(n: Int) = Empty
+    def drop(n: Int) = Empty
+    def foldRight[B](z: => B)(f: (Nothing, => B) => B) = z
+  }
+
+  case class Cons[+A](h: () => A, t: () => Stream[A]) extends Stream[A] {
+    def toList = h() +: t().toList
+    def take(n: Int) = if (n <= 0) {
+      Empty
+    } else {
+      Cons(h, () => t().take(n - 1))
+    }
+    def drop(n: Int) = if (n <= 0) {
+      this
+    } else {
+      t().drop(n - 1)
+    }
+    def foldRight[B](z: => B)(f: (A, => B) => B) = f(h(), t().foldRight(z)(f))
+  }
+
+  object Stream {
+    def cons[A](hd: => A, tl: => Stream[A]): Stream[A] = {
+      lazy val head = hd
+      lazy val tail = tl
+      Cons(() => head, () => tail)
+    }
+
+    def empty[A]: Stream[A] = Empty
+
+    def apply[A](as: A*): Stream[A] =
+      if (as.isEmpty) empty
+      else cons(as.head, apply(as.tail: _*))
+  }
+
+  object Main extends App {
+    def foo(x: Int): Int = {
+      println(x)
+      x
+    }
+
+    val ss = Stream(1,2,3,4,5,6,7,8,9,10)
+    println(ss.append(ss.filter(_ < 4)).map(foo(_)).flatMap(x => Stream(1,2,3).map(_ * x)).take(8).toList)
+  }
+#+END_SRC

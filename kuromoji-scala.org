@@ -1,0 +1,73 @@
+* scala で形態素解析する
+
+** SDKMAN のインストール
+
+JDK, sbt のインストールには SDKMAN を利用する。
+https://sdkman.io/
+
+下記のコマンドでインストールできる。
+#+BEGIN_SRC shell
+  curl -s "https://get.sdkman.io" | bash
+#+END_SRC
+
+** JDK のインストール
+
+利用可能なJDKの候補を表示する。
+#+BEGIN_SRC shell
+  sdk list java
+#+END_SRC
+
+候補から選択し、インストールする。
+#+BEGIN_SRC shell
+  sdk install java 11.0.11.hs-adpt
+#+END_SRC
+
+** sbt のインストール
+
+java と同様、 =sdk list sbt= で利用可能な候補が取得できるので、そこから選択してインストールする。
+#+BEGIN_SRC shell
+  sdk install sbt 1.5.2
+#+END_SRC
+
+** Scala プロジェクト作成
+
+#+BEGIN_SRC shell
+  sbt new sbt/scala-seed.g8
+#+END_SRC
+
+** kuromoji 導入
+
+#+BEGIN_SRC scala :tangle sample-app/build.sbt
+  ThisBuild / scalaVersion := "2.12.13"
+  ThisBuild / version := "0.1.0-SNAPSHOT"
+
+  lazy val root = (project in file("."))
+    .settings(
+      name := "sample-app",
+      libraryDependencies += "com.atilika.kuromoji" % "kuromoji-ipadic" % "0.9.0"
+    )
+#+END_SRC
+
+#+BEGIN_SRC conf :tangle sample-app/project/build.properties
+  sbt.version=1.5.2
+#+END_SRC
+
+** 形態素解析を行う
+
+#+BEGIN_SRC scala :tangle sample-app/src/main/scala/example/Hello.scala
+  package example
+
+  import com.atilika.kuromoji.ipadic.Token
+  import com.atilika.kuromoji.ipadic.Tokenizer
+  import scala.collection.JavaConversions._
+
+  object Hello extends App {
+    val tokenizer = new Tokenizer()
+    val tokens = tokenizer.tokenize("こんにちは。世界。")
+    tokens.foreach {
+      token => {
+        println(s"${token.getSurface()}\t${token.getAllFeatures()}")
+      }
+    }
+  }
+#+END_SRC

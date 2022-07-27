@@ -1,0 +1,48 @@
+* Rails で GraphQL バックエンドを構築する
+
+** graphql gem を導入する
+
+#+begin_src ruby
+  gem 'graphql'
+#+end_src
+
+=bundle exec rails g graphql:install= を実行する。
+
+** GraphQL でデータを取得する
+
+テーブルを用意する。今回は memos テーブルを作る。
+
+#+begin_src shell
+  bundle exec rails g model memo content:string
+  bundle exec rails g graphql:object memo
+  bundle exec rake db:migrate
+#+end_src
+
+=app/graphql/types/query_type.rb= に memos メソッドを追加する。
+
+#+begin_src ruby
+  module Types
+    class QueryType < Types::BaseObject
+      # Add `node(id: ID!) and `nodes(ids: [ID!]!)`
+      include GraphQL::Types::Relay::HasNodeField
+      include GraphQL::Types::Relay::HasNodesField
+
+      field :memos, [Types::MemoType], null: false
+
+      def memos
+        Memo.all
+      end
+    end
+  end
+#+end_src
+
+メモ一覧を取得する。実行するクエリは下記。
+#+begin_src
+  {
+    memos {
+        id
+        content
+
+    }
+  }
+#+end_src

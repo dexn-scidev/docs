@@ -1,0 +1,38 @@
+* 独自実装の文字列ライブラリ
+
+#+begin_src scheme :tangle string.scm
+  (define-module (string)
+    #:export (split-string))
+#+end_src
+
+** =(split-string c1 s1)=
+
+s1 を c1 で分割する。
+
+※利用には、list.scm が必要。
+
+*** 使い方
+
+#+begin_src scheme
+  (split-string #\x20 "hello world!")
+  ;; => (hello world)
+#+end_src
+
+*** 実装
+
+#+begin_src scheme :tangle string.scm
+  (use-modules (list))
+
+  (define (split-string separator s)
+    (define (split-list xs)
+      (cond ((null? xs)
+             '())
+            ((eq? separator (car xs))
+             (split-list (cdr xs)))
+            (else
+             (let ((neq-separator? (lambda (x) (not (eq? x separator)))))
+               (cons (take-while neq-separator? xs)
+                     (split-list (drop-while neq-separator? xs)))))))
+
+    (map list->string (split-list (string->list s))))
+#+end_src

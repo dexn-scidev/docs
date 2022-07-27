@@ -1,0 +1,67 @@
+* Rails アプリケーション構築
+
+** アプリケーションを作成する
+
+#+BEGIN_SRC shell
+  mkdir webapp
+  cd webapp
+#+END_SRC
+
+Docker イメージと Ruby, Bundler バージョンを合わせる必要があるので、ビルドに使用する Ruby, Bundler のバージョンを固定する。
+#+BEGIN_SRC shell
+  rbenv local 2.7.4
+  gem install bundler -v 2.2.29
+#+END_SRC
+
+Rails gem を導入する。
+#+BEGIN_SRC ruby :tangle webapp/Gemfile
+  # frozen_string_literal: true
+
+  source "https://rubygems.org"
+
+  git_source(:github) {|repo_name| "https://github.com/#{repo_name}" }
+
+  gem "rails"
+#+END_SRC
+
+#+BEGIN_SRC shell
+  bundle install
+  bundle exec rails new .
+#+END_SRC
+
+** Rails アプリケーションの Docker イメージをビルドする
+
+*** 本番用
+
+#+BEGIN_SRC shell :tangle webapp/startup.sh
+  #!/usr/bin/env bash
+
+  if [ ! -e tmp/pids ]; then
+    mkdir -p tmp/pids
+  fi
+
+  bundle exec puma
+#+END_SRC
+
+#+BEGIN_SRC dockerfile :tangle webapp/Dockerfile
+  FROM ruby:2.7.5 AS webapp
+
+  ARG SECRET_KEY_BASE
+
+  ENV TZ Asia/Tokyo
+  ENV BUNDLER_VERSION 2.3.6
+  ENV RAILS_ENV production
+
+  RUN gem install bundler -v "${BUNDLER_VERSION}"
+  COPY Gemfile Gemfile.lock ./
+  RUN bundle config set --local without 'development test'; \
+      bundle install
+
+  COPY . .
+  RUN bundle exec rake db:migrate
+  RUN bundle exec rails assets:precompile
+
+  RUN chmod 744 /startup.sh
+
+  CMD ["/startup.sh"]
+#+END_SRC

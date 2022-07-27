@@ -1,0 +1,165 @@
+* 静的サイトジェネレータ Gatsby を使う
+
+** 導入
+
+*** インストール
+
+あらかじめ node が入っているものとする。
+
+#+begin_src shell
+  npm i -g gatsby-cli
+#+end_src
+
+*** プロジェクトを作成する
+
+#+begin_src shell
+  gatsby new
+#+end_src
+
+色々聞かれるので、適当に答える。(このドキュメントでは TypeScript を使う)
+以降、プロジェクト名を my-app とする。
+
+*** 開発環境で動かす
+
+#+begin_src shell
+  cd my-app
+  npm run develop
+#+end_src
+
+で動かす。
+=localhost:8000= でアクセスできる。
+
+*** 本番デプロイ
+
+Render で動かす場合、Build Command を =gatsby build= 、Publish directory を =public= にする。
+
+** 基本的な使い方
+
+*** ページを編集する
+
+ルートページは =src/pages/index.tsx= を編集すればよい。
+#+begin_src typescript
+  import * as React from 'react'
+
+  const IndexPage = () => {
+    return (
+      <main>
+        <title>Home Page</title>
+        <h1>Welcome to my Gatsby site!</h1>
+        <p>I'm making this by following the Gatsby Tutorial.</p>
+      </main>
+    )
+  }
+
+  export default IndexPage
+#+end_src
+
+*** ページを追加する
+
+/about を追加してみる。
+=src/pages/about.tsx= を作成すればいい。
+#+begin_src typescript :tangle my-app/src/pages/about.tsx
+  import * as React from 'react'
+
+  const AboutPage = () => {
+    return (
+      <main>
+        <title>About Me</title>
+        <h1>About Me</h1>
+        <p>Hi there! I'm the proud creator of this site, which I built with Gatsby.</p>
+      </main>
+    )
+  }
+
+  export default AboutPage
+#+end_src
+
+*** ページ遷移を実装する
+
+=<Link>= コンポーネントで画面遷移を実装する。
+使い方はこんな感じ。
+#+begin_src typescript
+  import * as React from 'react'
+  import { Link } from 'gatsby'
+
+  const IndexPage = () => {
+    return (
+      <main>
+        <title>Home Page</title>
+        <h1>Welcome to my Gatsby site!</h1>
+        <Link to="/about">About</Link>
+        <p>I'm making this by following the Gatsby Tutorial.</p>
+      </main>
+    )
+  }
+
+  export default IndexPage
+#+end_src
+
+*** データを取得する
+
+Gatsby では GraphQL を利用してデータを取得する。
+サイトのタイトルを取得してみる。
+
+#+begin_src graphql
+  query MyQuery {
+    site {
+      siteMetadata {
+        title
+      }
+    }
+  }
+#+end_src
+
+=http://localhost:8000/___graphql= で上記クエリを実行する。下記のようなJSONがかえってくるはず。
+
+#+begin_src javascript
+  {
+    "data": {
+      "site": {
+        "siteMetadata": {
+          "title": "My First Gatsby Site"
+        }
+      }
+    },
+    "extensions": {}
+  }
+#+end_src
+
+コンポーネントから取得するには、 =useStaticQuery= を使う。
+
+#+begin_src typescript :tangle my-app/src/pages/index.tsx
+  import * as React from "react";
+  import { Link, useStaticQuery, graphql } from "gatsby";
+
+  type QueryData = {
+    site: {
+      siteMetadata: {
+        title: string;
+      };
+    };
+  };
+
+  const IndexPage = () => {
+    const data = useStaticQuery<QueryData>(graphql`
+      query {
+        site {
+          siteMetadata {
+            title
+          }
+        }
+      }
+    `);
+
+    return (
+      <main>
+        <title>{data.site.siteMetadata.title}</title>
+        <h1>Welcome to my Gatsby site!</h1>
+        <Link to="/about">About</Link>
+        <p>I'm making this by following the Gatsby Tutorial.</p>
+      </main>
+    );
+  };
+
+  export default IndexPage;
+#+end_src

@@ -1,0 +1,48 @@
+* 多重集合ライブラリ (Scheme 実装)
+
+** ライブラリ（リスト実装）
+
+#+begin_src scheme :tangle multi-set.scm
+  (define-module (multi-set)
+    #:export (multi-set
+              the-empty-set
+              multi-set-empty?
+              multi-set-add
+              multi-set-delete))
+
+  (define (multi-set . xs)
+    (apply list xs))
+
+  (define the-empty-set '())
+
+  (define (multi-set-empty? s)
+    (null? s))
+
+  (define (multi-set-head s)
+    (car s))
+
+  (define (multi-set-tail s)
+    (cdr s))
+
+  (define (multi-set-add s v)
+    (cons v s))
+
+  (define (multi-set-delete s v)
+    (cond ((multi-set-empty? s) the-empty-set)
+          ((= v (multi-set-head s)) (multi-set-tail s))
+          (else (multi-set-add (multi-set-delete (multi-set-tail s) v)
+                               (multi-set-head s)))))
+#+end_src
+
+** ライブラリ読み出し
+
+#+begin_src scheme :tangle main.scm
+  (use-modules (multi-set))
+
+  (define s (multi-set 1 2 3 3 2 1))
+
+  (display s)
+  (newline)
+  (display (multi-set-delete s 2))
+  (newline)
+#+end_src

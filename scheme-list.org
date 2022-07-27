@@ -1,0 +1,54 @@
+* 独自実装のリストライブラリ
+
+#+begin_src scheme :tangle list.scm
+  (define-module (list)
+    #:export (take-while drop-while))
+#+end_src
+
+** =(take-while predicate? list)=
+
+=list= の先頭から =predicate?= が真となる限り要素を返す。
+
+*** 使い方
+
+#+begin_src scheme
+  (take-while even? '(2 4 5 6))
+  ;; => (2 4)
+#+end_src
+
+*** 実装
+
+#+begin_src scheme :tangle list.scm
+  (define (take-while p? xs)
+    (cond ((null? xs)
+           '())
+          ((p? (car xs))
+           (cons (car xs)
+                 (take-while p? (cdr xs))))
+          (else
+           '())))
+#+end_src
+
+
+** =(drop-while predicate? list)=
+
+=list= の先頭から =predicate?= が真となる限り要素を取り除く。
+
+*** 使い方
+
+#+begin_src scheme
+  (drop-while even? '(2 4 5 6))
+  ;; => (5 6)
+#+end_src
+
+*** 実装
+
+#+begin_src scheme :tangle list.scm
+  (define (drop-while p? xs)
+    (cond ((null? xs)
+           '())
+          ((p? (car xs))
+           (drop-while p? (cdr xs)))
+          (else
+           xs)))
+#+end_src

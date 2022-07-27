@@ -1,0 +1,39 @@
+* Scheme によるグラフ探索
+** 破壊版
+#+begin_src scheme
+  (define (enumerate-pairs x)
+    (letrec ((visited '())
+             (iter (lambda (v)
+                     (cond ((memq v visited)
+                            'none)
+                           ((not (pair? v))
+                            'none)
+                           (else
+                            (begin
+                              (set! visited (cons v visited))
+                              (iter (car v))
+                              (iter (cdr v))))))))
+      (iter x)
+      visited))
+#+end_src
+** 非破壊版
+#+begin_src scheme :tangle graph.scm
+  (define (enumerate-pairs x)
+    (letrec ((iter (lambda (visited v)
+                     (cond ((memq v visited) visited)
+                           ((not (pair? v)) visited)
+                           (else (iter (iter (cons v visited) (car v))
+                                       (cdr v)))))))
+      (iter '() x)))
+#+end_src
+** 動作確認
+#+begin_src scheme :tangle graph.scm
+  (define y (cons 1 2))
+
+  (define z (cons y y))
+
+  (display z)
+  (newline)
+  (display (enumerate-pairs z))
+  (newline)
+#+end_src
