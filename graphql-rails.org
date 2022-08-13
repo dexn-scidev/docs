@@ -8,6 +8,23 @@
 
 =bundle exec rails g graphql:install= を実行する。
 
+** 動作確認
+
+=bin/rails s= でサーバーを立ち上げて、 =localhost:3000/graphiql= にアクセスする。
+試しに
+
+#+begin_src graphql
+  {
+    testField
+  }
+#+end_src
+
+を実行してみる。"Hello World" が返って来ればOK。
+
+** GraphiQL を使う
+
+GraphQL Endpoint に =http://localhost:3000/graphql= を入力して実行する。
+
 ** GraphQL でデータを取得する
 
 テーブルを用意する。今回は memos テーブルを作る。
