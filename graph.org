@@ -1,4 +1,4 @@
-* Scheme によるグラフ探索
+* Scheme による２分木探索
 ** 破壊版
 #+begin_src scheme
   (define (enumerate-pairs x)
